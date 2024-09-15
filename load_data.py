@@ -81,5 +81,6 @@ def process_unstructured(path):
         start_index = doc.metadata.get('start_index', 0)
         doc_id = f"{file_name}_{start_index}"
         doc.id = doc_id
+        doc.metadata['id'] = doc_id
 
     return split_docs
