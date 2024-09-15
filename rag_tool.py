@@ -2,15 +2,16 @@ from langchain.retrievers import ContextualCompressionRetriever, SelfQueryRetrie
 from langchain.retrievers.document_compressors import LLMChainExtractor, CohereRerank
 from langchain.chains.query_constructor.base import AttributeInfo
 
+
 def create_retriever(llm, vectorstore):
     base_retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
 
     compressor = LLMChainExtractor.from_llm(llm)
 
     return ContextualCompressionRetriever(
-        base_compressor=compressor,
-        base_retriever=base_retriever
+        base_compressor=compressor, base_retriever=base_retriever
     )
+
 
 # We want to get all the dates etc available to put into info for the self query retriever
 def get_metadata_options(docs):
@@ -27,6 +28,7 @@ def get_metadata_options(docs):
             topics.add(topic)
 
     return dict(files=list(files), dates=list(dates), topics=list(topics))
+
 
 def create_self_query_retriever(llm, vectorstore, metadata_options):
     metadata_field_info = [
@@ -54,16 +56,13 @@ def create_self_query_retriever(llm, vectorstore, metadata_options):
         vectorstore,
         document_content_description,
         metadata_field_info,
-        verbose=True
+        verbose=True,
     )
 
 
 def create_compression_retriever(llm, base_retriever):
-
     # compressor = CohereRerank() # TODO need to get Cohere API key
     compressor = LLMChainExtractor.from_llm(llm)
     return ContextualCompressionRetriever(
-        base_compressor=compressor,
-        base_retriever=base_retriever
+        base_compressor=compressor, base_retriever=base_retriever
     )
-

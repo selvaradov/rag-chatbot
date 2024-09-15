@@ -2,9 +2,11 @@ import subprocess
 import sys
 import time
 
+
 def run_command(command):
     process = subprocess.Popen(command, shell=True)
     return process
+
 
 if __name__ == "__main__":
     backend = run_command("poetry run python app.py")

@@ -1,4 +1,3 @@
-
 import pickle
 import json
 from datetime import datetime
@@ -7,17 +6,25 @@ import dotenv
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain.tools.retriever import create_retriever_tool
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, PromptTemplate
+from langchain_core.prompts import (
+    ChatPromptTemplate,
+    MessagesPlaceholder,
+    PromptTemplate,
+)
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.chat_message_histories import SQLChatMessageHistory
 
 from quart import Quart, request, Response
 from quart_cors import cors
 
-
 from load_data import process_csv_dir, process_unstructured
 from generate_qa import process_for_qa
-from rag_tool import create_retriever, get_metadata_options, create_self_query_retriever, create_compression_retriever
+from rag_tool import (
+    create_retriever,
+    get_metadata_options,
+    create_self_query_retriever,
+    create_compression_retriever,
+)
 from vectorstore import save_or_load_vectorstore
 
 dotenv.load_dotenv()
@@ -29,13 +36,13 @@ app = cors(app)
 llm = ChatOpenAI(model="gpt-4o-2024-08-06", temperature=0.7)
 
 # Load and process CSV
-csv_docs = process_csv_dir('./content/tables')
+csv_docs = process_csv_dir("./content/tables")
 
 # Load and process unstructured document
-unstructured_docs = process_unstructured('./content/unstructured')
+unstructured_docs = process_unstructured("./content/unstructured")
 
 # Combine all documents
-all_input_docs = csv_docs # + unstructured_docs
+all_input_docs = csv_docs  # + unstructured_docs
 
 # Generate QA documents
 generate_qa = False
@@ -45,10 +52,10 @@ qa_docs = None
 
 if generate_qa:
     qa_docs, failed_outputs = process_for_qa(llm, csv_docs, checkpoint_frequency=3)
-    with open('qa_output.pkl', 'wb') as f:
+    with open("qa_output.pkl", "wb") as f:
         pickle.dump((qa_docs, failed_outputs), f)
 elif load_qa:
-    with open('qa_output.pkl', 'rb') as f:
+    with open("qa_output.pkl", "rb") as f:
         qa_docs, failed_outputs = pickle.load(f)
 
 all_docs = qa_docs + all_input_docs if qa_docs else all_input_docs
@@ -59,7 +66,9 @@ vectorstore = save_or_load_vectorstore(all_docs, embeddings)
 
 # Create retriever pipeline
 compression_retriever = create_retriever(llm, vectorstore)
-vanilla_retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 6})
+vanilla_retriever = vectorstore.as_retriever(
+    search_type="similarity", search_kwargs={"k": 6}
+)
 
 metadata_options = get_metadata_options(all_docs)
 self_query_retriever = create_self_query_retriever(llm, vectorstore, metadata_options)
@@ -94,7 +103,6 @@ When answering questions, prioritise information from pre-written Q&A pairs when
 Always strive to provide clear, concise, and accurate responses."""
 
 
-
 prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system_prompt),
@@ -120,17 +128,18 @@ agent_with_history_async = RunnableWithMessageHistory(
     history_messages_key="history",
 )
 
-@app.route('/chat', methods=['POST'])
+
+@app.route("/chat", methods=["POST"])
 async def chat():
     data = await request.get_json()
-    user_input = data['message']
-    session_id = data['session_id']
-    
+    user_input = data["message"]
+    session_id = data["session_id"]
+
     config = {"configurable": {"session_id": session_id}}
 
     async def generate():
         yield json.dumps({"type": "status", "content": "Agent is thinking..."}) + "\n"
-        
+
         async for event in agent_with_history_async.astream_events(
             {"input": user_input}, config, version="v2"
         ):
@@ -144,8 +153,8 @@ async def chat():
 
         yield json.dumps({"type": "status", "content": "DONE"}) + "\n"
 
-    return Response(generate(), mimetype='application/x-ndjson')
+    return Response(generate(), mimetype="application/x-ndjson")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(debug=True)
