@@ -8,5 +8,4 @@ def save_or_load_vectorstore(documents, embedding, persist_directory="./chroma_d
     else:
         print("Creating new vectorstore...")
         vectorstore = Chroma.from_documents(documents=documents, embedding=embedding, persist_directory=persist_directory)
-        vectorstore.persist()
         return vectorstore
