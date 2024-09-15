@@ -2,6 +2,7 @@
 import pickle
 import json
 from datetime import datetime
+import dotenv
 
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.agents import create_tool_calling_agent, AgentExecutor
@@ -19,6 +20,7 @@ from generate_qa import process_for_qa
 from rag_tool import create_retriever, get_metadata_options, create_self_query_retriever, create_compression_retriever
 from vectorstore import save_or_load_vectorstore
 
+dotenv.load_dotenv()
 
 app = Quart(__name__)
 app = cors(app)
