@@ -14,7 +14,7 @@ from langchain_core.prompts import (
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.chat_message_histories import SQLChatMessageHistory
 
-from quart import Quart, request, Response
+from quart import Quart, request, Response, send_from_directory
 from quart_cors import cors
 
 from load_data import process_csv_dir, process_unstructured
@@ -155,6 +155,10 @@ async def chat():
 
     return Response(generate(), mimetype="application/x-ndjson")
 
+
+@app.route('/')
+async def serve_streamlit():
+    return await send_from_directory('', 'streamlit.py')
 
 if __name__ == "__main__":
     app.run(debug=True)
