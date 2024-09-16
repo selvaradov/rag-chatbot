@@ -93,18 +93,17 @@ def generate_chunk_qa(llm, info):
     messages = chunk_prompt.format_messages(
         info=info, format_instructions=chunk_output_parser.get_format_instructions()
     )
-    output = llm(messages)
+    output = llm.invoke(messages)
     try:
         return chunk_output_parser.parse(output.content), None
     except ValidationError as e:
         return None, (str(e), output.content)
     
 def generate_row_qa(llm, info, timeframe):
-    print(row_output_parser.get_format_instructions())
     messages = row_prompt.format_messages(
         info=info, timeframe=timeframe, format_instructions=row_output_parser.get_format_instructions()
     )
-    output = llm(messages)
+    output = llm.invoke(messages)
     try:
         return row_output_parser.parse(output.content), None
     except ValidationError as e:
@@ -114,7 +113,7 @@ def generate_column_qa(llm, info, topic):
     messages = column_prompt.format_messages(
         info=info, topic=topic, format_instructions=column_output_parser.get_format_instructions()
     )
-    output = llm(messages)
+    output = llm.invoke(messages)
     try:
         return column_output_parser.parse(output.content), None
     except ValidationError as e:
@@ -181,9 +180,7 @@ def process_for_qa(
         combined_info = "\n\n-----\n\n".join([doc.page_content for doc in docs])
         qa_output, error = generate_row_qa(llm, combined_info, year)
         ## debug line
-        print(f"Processing year: {year}, QA Output: {qa_output}, Error: {error}")
-        print("Combined Info:", combined_info)
-        print("\n\n\n")
+        print(f"Processed year: {year}, QA Output: {qa_output}, Error: {error}")
         
         if qa_output is None:
             assert error is not None
@@ -210,6 +207,7 @@ def process_for_qa(
     for topic, docs in topic_docs.items():
         combined_info = "\n".join([f"{doc.metadata['date']}: {doc.page_content}" for doc in docs])
         qa_output, error = generate_column_qa(llm, combined_info, topic)
+        print(f"Processed topic: {topic}, QA Output: {qa_output}, Error: {error}")
         
         if qa_output is None:
             assert error is not None
@@ -235,6 +233,7 @@ def process_for_qa(
     # Process each cell chunk individually
     for i, doc in enumerate(documents[start_index:], start=start_index):
         qa_output, error = generate_chunk_qa(llm, doc.page_content)
+        print(f"Processed chunk: {doc.id}, QA Output: {qa_output}, Error: {error}")
 
         if qa_output is None:
             assert error is not None
