@@ -3,6 +3,7 @@ import json
 from datetime import datetime
 import dotenv
 import os
+import httpx
 
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.agents import create_tool_calling_agent, AgentExecutor
@@ -154,9 +155,35 @@ async def chat():
     return Response(generate(), mimetype="application/x-ndjson")
 
 
-@app.route('/')
-async def serve_streamlit():
-    return await send_from_directory('', 'streamlit_frontend.py')
+# @app.route('/')
+# async def serve_streamlit():
+#     return await send_from_directory('', 'streamlit_frontend.py')
+
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+async def proxy(path):
+    async with httpx.AsyncClient() as client:
+        url = f"http://127.0.0.1:8501/{path}"
+        
+        # Forward query parameters
+        params = request.args.to_dict()
+        
+        # Forward headers
+        headers = {k: v for k, v in request.headers.items() if k.lower() not in ['host', 'content-length']}
+        
+        # Forward the request method and body
+        method = request.method
+        data = await request.get_data()
+        
+        resp = await client.request(method, url, params=params, headers=headers, content=data)
+        
+        # Create a response with the same status code, headers, and content
+        response = Response(resp.content, status=resp.status_code)
+        for name, value in resp.headers.items():
+            if name.lower() not in ['content-encoding', 'content-length', 'transfer-encoding']:
+                response.headers[name] = value
+        
+        return response
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
