@@ -101,7 +101,6 @@ def generate_chunk_qa(llm, info):
     
 def generate_row_qa(llm, info, timeframe):
     print(row_output_parser.get_format_instructions())
-    raise Exception
     messages = row_prompt.format_messages(
         info=info, timeframe=timeframe, format_instructions=row_output_parser.get_format_instructions()
     )
@@ -282,7 +281,7 @@ if __name__ == "__main__":
 
     from langchain_openai import ChatOpenAI
 
-    from load_data import process_csv_dir, process_unstructured
+    from load_data import process_csv_dir
     from generate_qa import process_for_qa
 
     dotenv.load_dotenv()
@@ -292,9 +291,6 @@ if __name__ == "__main__":
 
     # Load and process CSV
     csv_docs = process_csv_dir("./content/tables")
-
-    # Load and process unstructured document
-    unstructured_docs = process_unstructured("./content/unstructured")
 
     qa_docs, failed_outputs = process_for_qa(llm, csv_docs, checkpoint_frequency=3)
     with open("qa_output.pkl", "wb") as f:

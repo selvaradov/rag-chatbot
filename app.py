@@ -60,18 +60,10 @@ else:
     all_input_docs = load_documents()
 
 # Generate QA documents
-generate_qa = False
 load_qa = False
 
 qa_docs = None
-
-if generate_qa:
-    if csv_docs is None:
-        raise ValueError("csv_docs must be processed before generating QA.")
-    qa_docs, failed_outputs = process_for_qa(llm, csv_docs, checkpoint_frequency=3)
-    with open("qa_output.pkl", "wb") as f:
-        pickle.dump((qa_docs, failed_outputs), f)
-elif load_qa:
+if load_qa:
     with open("qa_output.pkl", "rb") as f:
         qa_docs, failed_outputs = pickle.load(f)
 
