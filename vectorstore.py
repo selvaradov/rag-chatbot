@@ -8,7 +8,7 @@ def save_or_load_vectorstore(documents, embedding):
             return PGVector.from_existing_index(
                 embedding,
                 collection_name="documents",
-                connection_string=connection_string,
+                connection=connection_string,
             )
         except Exception as e:
             print(f"Error loading existing vectorstore: {e}")
@@ -17,7 +17,7 @@ def save_or_load_vectorstore(documents, embedding):
                 documents,
                 embedding,
                 collection_name="documents",
-                connection_string=connection_string,
+                connection=connection_string,
             )
 
     else:  # We're local
