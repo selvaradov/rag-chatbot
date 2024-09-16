@@ -156,7 +156,7 @@ async def chat():
 
 @app.route('/')
 async def serve_streamlit():
-    return await send_from_directory('', 'streamlit.py')
+    return await send_from_directory('', 'streamlit_frontend.py')
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
