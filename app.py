@@ -2,6 +2,7 @@ import pickle
 import json
 from datetime import datetime
 import dotenv
+import os
 
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.agents import create_tool_calling_agent, AgentExecutor
@@ -158,4 +159,6 @@ async def serve_streamlit():
     return await send_from_directory('', 'streamlit.py')
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
+
