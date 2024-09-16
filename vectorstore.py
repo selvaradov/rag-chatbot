@@ -3,7 +3,8 @@ from langchain_chroma import Chroma
 from langchain_postgres import PGVector 
 
 def save_or_load_vectorstore(documents, embedding):
-    if connection_string := os.environ.get('DATABASE_URL'):
+    if conn := os.environ.get('DATABASE_URL'):
+        connection_string = conn.replace("postgres://", "postgresql://")
         try:
             return PGVector.from_existing_index(
                 embedding,
