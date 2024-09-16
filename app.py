@@ -39,10 +39,12 @@ llm = ChatOpenAI(model="gpt-4o-2024-08-06", temperature=0.7)
 csv_docs = process_csv_dir("./content/tables")
 
 # Load and process unstructured document
-unstructured_docs = process_unstructured("./content/unstructured")
-
-# Combine all documents
-all_input_docs = csv_docs  # + unstructured_docs
+include_unstructured = False
+if include_unstructured:
+    unstructured_docs = process_unstructured("./content/unstructured")
+    all_input_docs = csv_docs + unstructured_docs
+else:
+    all_input_docs = csv_docs
 
 # Generate QA documents
 generate_qa = False
