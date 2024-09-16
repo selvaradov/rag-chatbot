@@ -4,12 +4,22 @@ from langchain_postgres import PGVector
 
 def save_or_load_vectorstore(documents, embedding):
     if connection_string := os.environ.get('DATABASE_URL'):
-        return PGVector.from_documents(
-            documents,
-            embedding,
-            collection_name="documents",
-            connection_string=connection_string,
-        )
+        try:
+            return PGVector.from_existing_index(
+                embedding,
+                collection_name="documents",
+                connection_string=connection_string,
+            )
+        except Exception as e:
+            print(f"Error loading existing vectorstore: {e}")
+            print("Creating new vectorstore...")
+            return PGVector.from_documents(
+                documents,
+                embedding,
+                collection_name="documents",
+                connection_string=connection_string,
+            )
+
     else:  # We're local
         persist_directory = "./chroma_db" # TODO switch out Chroma for PGVector locally
         if os.path.exists(persist_directory):
