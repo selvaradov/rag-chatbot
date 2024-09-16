@@ -7,22 +7,28 @@ def save_or_load_vectorstore(documents, embedding):
         print("inside conn part")
         connection_string = conn.replace("postgres://", "postgresql+asyncpg://")
         try:
-            return PGVector.from_existing_index(
+            print("Loading existing vectorstore...")
+            vectorstore = PGVector.from_existing_index(
                 embedding,
                 collection_name="documents",
                 connection=connection_string,
                 async_mode=True,
             )
+            print("Successfully loaded existing vectorstore.")
+            return vectorstore
+
         except Exception as e:
             print(f"Error loading existing vectorstore: {e}")
             print("Creating new vectorstore...")
-            return PGVector.from_documents(
+            vectorstore = PGVector.from_documents(
                 documents,
                 embedding,
                 collection_name="documents",
                 connection=connection_string,
                 async_mode=True,
             )
+            print("Successfully created new vectorstore.")
+            return vectorstore
 
     else:  # We're local
         print("local vectorstore mode")
