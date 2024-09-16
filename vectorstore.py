@@ -1,16 +1,24 @@
 import os
 from langchain_chroma import Chroma
+from langchain_postgres import PGVector 
 
-
-def save_or_load_vectorstore(documents, embedding, persist_directory="./chroma_db"):
-    if os.path.exists(persist_directory):
-        print("Loading existing vectorstore...")
-        return Chroma(persist_directory=persist_directory, embedding_function=embedding)
-    else:
-        print("Creating new vectorstore...")
-        vectorstore = Chroma.from_documents(
-            documents=documents,
-            embedding=embedding,
-            persist_directory=persist_directory,
+def save_or_load_vectorstore(documents, embedding):
+    if connection_string := os.environ.get('DATABASE_URL'):
+        return PGVector.from_documents(
+            documents,
+            embedding,
+            collection_name="documents",
+            connection_string=connection_string,
         )
-        return vectorstore
+    else:  # We're local
+        persist_directory = "./chroma_db" # TODO switch out Chroma for PGVector locally
+        if os.path.exists(persist_directory):
+            print("Loading existing local vectorstore...")
+            return Chroma(persist_directory=persist_directory, embedding_function=embedding)
+        else:
+            print("Creating new local vectorstore...")
+            return Chroma.from_documents(
+                documents=documents,
+                embedding=embedding,
+                persist_directory=persist_directory,
+            )

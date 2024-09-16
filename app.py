@@ -2,6 +2,7 @@ import pickle
 import json
 from datetime import datetime
 import dotenv
+import os
 
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.agents import create_tool_calling_agent, AgentExecutor
@@ -26,6 +27,7 @@ from rag_tool import (
     create_compression_retriever,
 )
 from vectorstore import save_or_load_vectorstore
+from database import store_documents, load_documents, clear_documents
 
 dotenv.load_dotenv()
 
@@ -35,16 +37,27 @@ app = cors(app)
 # Initialize LLM
 llm = ChatOpenAI(model="gpt-4o-2024-08-06", temperature=0.7)
 
-# Load and process CSV
-csv_docs = process_csv_dir("./content/tables")
-
-# Load and process unstructured document
+# Load and process raw documents
+process_raw_docs = True
 include_unstructured = False
-if include_unstructured:
-    unstructured_docs = process_unstructured("./content/unstructured")
-    all_input_docs = csv_docs + unstructured_docs
+csv_docs = None
+
+if process_raw_docs:
+    csv_docs = process_csv_dir("./content/tables")
+    if include_unstructured:
+        unstructured_docs = process_unstructured("./content/unstructured")
+        all_input_docs = csv_docs + unstructured_docs
+    else:
+        all_input_docs = csv_docs
+
+    # Store documents in database for Heroku
+    if 'DATABASE_URL' in os.environ:
+        clear_documents()  # Clear existing documents
+        store_documents(all_input_docs)
+    else:
+        all_docs = all_input_docs
 else:
-    all_input_docs = csv_docs
+    all_input_docs = load_documents()
 
 # Generate QA documents
 generate_qa = False
@@ -53,6 +66,8 @@ load_qa = False
 qa_docs = None
 
 if generate_qa:
+    if csv_docs is None:
+        raise ValueError("csv_docs must be processed before generating QA.")
     qa_docs, failed_outputs = process_for_qa(llm, csv_docs, checkpoint_frequency=3)
     with open("qa_output.pkl", "wb") as f:
         pickle.dump((qa_docs, failed_outputs), f)

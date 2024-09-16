@@ -10,3 +10,11 @@
 - The citations provided are references to the main Airtable with the format `airtable.csv_COLUMN_ROW_CHUNK`.
   - Rows start from zero and ignore the notes (and headers)
   - Chunks don't mean anything at the moment
+
+## Setting up heroku
+- Do `git push heroku main` then navigate to the URL to check project
+- To get the files in place each time the server restarts:
+  - `heroku run bash`
+    - `mkdir -p content/tables`
+    - `exit`
+  - `heroku ps:copy content/tables/* /app/content/tables`
