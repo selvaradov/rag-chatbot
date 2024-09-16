@@ -4,6 +4,7 @@ from langchain_postgres import PGVector
 
 def save_or_load_vectorstore(documents, embedding):
     if conn := os.environ.get('DATABASE_URL'):
+        print("inside conn part")
         connection_string = conn.replace("postgres://", "postgresql+asyncpg://")
         try:
             return PGVector.from_existing_index(
@@ -24,6 +25,7 @@ def save_or_load_vectorstore(documents, embedding):
             )
 
     else:  # We're local
+        print("local vectorstore mode")
         persist_directory = "./chroma_db" # TODO switch out Chroma for PGVector locally
         if os.path.exists(persist_directory):
             print("Loading existing local vectorstore...")

@@ -59,6 +59,7 @@ all_docs = qa_docs + all_input_docs if qa_docs else all_input_docs
 
 # Create the vector store
 embeddings = OpenAIEmbeddings()
+print("got to vectorstore part")
 vectorstore = save_or_load_vectorstore(all_docs, embeddings)
 
 # Create retriever pipeline
