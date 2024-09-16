@@ -3,8 +3,6 @@ import json
 from datetime import datetime
 import dotenv
 import os
-import httpx
-import re
 
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.agents import create_tool_calling_agent, AgentExecutor
@@ -28,7 +26,6 @@ from rag_tool import (
     create_compression_retriever,
 )
 from vectorstore import save_or_load_vectorstore
-# from database import store_documents, load_documents, clear_documents
 
 dotenv.load_dotenv()
 
