@@ -4,12 +4,13 @@ from langchain_postgres import PGVector
 
 def save_or_load_vectorstore(documents, embedding):
     if conn := os.environ.get('DATABASE_URL'):
-        connection_string = conn.replace("postgres://", "postgresql://")
+        connection_string = conn.replace("postgres://", "postgresql+asyncpg://")
         try:
             return PGVector.from_existing_index(
                 embedding,
                 collection_name="documents",
                 connection=connection_string,
+                async_mode=True,
             )
         except Exception as e:
             print(f"Error loading existing vectorstore: {e}")
@@ -19,6 +20,7 @@ def save_or_load_vectorstore(documents, embedding):
                 embedding,
                 collection_name="documents",
                 connection=connection_string,
+                async_mode=True,
             )
 
     else:  # We're local
