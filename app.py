@@ -2,7 +2,6 @@ import pickle
 import json
 from datetime import datetime
 import dotenv
-import os
 
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.agents import create_tool_calling_agent, AgentExecutor
@@ -19,7 +18,6 @@ from quart import Quart, request, Response, send_from_directory
 from quart_cors import cors
 
 from load_data import process_csv_dir, process_unstructured
-from generate_qa import process_for_qa
 from rag_tool import (
     create_retriever,
     get_metadata_options,
@@ -27,7 +25,7 @@ from rag_tool import (
     create_compression_retriever,
 )
 from vectorstore import save_or_load_vectorstore
-from database import store_documents, load_documents, clear_documents
+# from database import store_documents, load_documents, clear_documents
 
 dotenv.load_dotenv()
 
@@ -42,22 +40,12 @@ process_raw_docs = True
 include_unstructured = False
 csv_docs = None
 
-if process_raw_docs:
-    csv_docs = process_csv_dir("./content/tables")
-    if include_unstructured:
-        unstructured_docs = process_unstructured("./content/unstructured")
-        all_input_docs = csv_docs + unstructured_docs
-    else:
-        all_input_docs = csv_docs
-
-    # Store documents in database for Heroku
-    if 'DATABASE_URL' in os.environ:
-        clear_documents()  # Clear existing documents
-        store_documents(all_input_docs)
-    else:
-        all_docs = all_input_docs
+csv_docs = process_csv_dir("./content/tables")
+if include_unstructured:
+    unstructured_docs = process_unstructured("./content/unstructured")
+    all_input_docs = csv_docs + unstructured_docs
 else:
-    all_input_docs = load_documents()
+    all_input_docs = csv_docs
 
 # Generate QA documents
 load_qa = False
