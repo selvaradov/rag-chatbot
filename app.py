@@ -4,6 +4,7 @@ from datetime import datetime
 import dotenv
 import os
 import httpx
+import re
 
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.agents import create_tool_calling_agent, AgentExecutor
@@ -163,7 +164,11 @@ async def chat():
 @app.route('/<path:path>')
 async def proxy(path):
     async with httpx.AsyncClient() as client:
-        url = f"http://127.0.0.1:8501/{path}"
+        # Special handling for Streamlit's static files
+        if path.startswith('_stcore/') or path == 'favicon.png':
+            url = f"http://127.0.0.1:8501/{path}"
+        else:
+            url = f"http://127.0.0.1:8501/{path}"
         
         # Forward query parameters
         params = request.args.to_dict()
@@ -182,6 +187,13 @@ async def proxy(path):
         for name, value in resp.headers.items():
             if name.lower() not in ['content-encoding', 'content-length', 'transfer-encoding']:
                 response.headers[name] = value
+        
+        # Special handling for Streamlit's HTML content
+        if 'text/html' in response.headers.get('Content-Type', ''):
+            content = resp.text
+            # Replace Streamlit's base URL with our app's URL
+            content = re.sub(r'http://localhost:8501', '', content)
+            response.set_data(content)
         
         return response
 
