@@ -156,19 +156,10 @@ async def chat():
     return Response(generate(), mimetype="application/x-ndjson")
 
 
-# @app.route('/')
-# async def serve_streamlit():
-#     return await send_from_directory('', 'streamlit_frontend.py')
-
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
-async def proxy_to_streamlit(path):
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.get(f'http://127.0.0.1:8501/{path}')
-            return Response(response.content, status=response.status_code, headers=dict(response.headers))
-        except httpx.RequestError:
-            return "Streamlit is not available", 503
+if os.environ.get("LOCAL_STREAMLIT") == "true":
+    @app.route('/')
+    async def serve_streamlit():
+        return await send_from_directory('', 'streamlit_frontend.py')
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
