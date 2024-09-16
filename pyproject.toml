@@ -20,8 +20,9 @@ lark = "^1.2.2"
 aiosqlite = "^0.20.0"
 streamlit = "^1.38.0"
 psycopg2-binary = "^2.9.9"
-sqlalchemy = "^2.0.34"
+sqlalchemy = {extras = ["asyncio"], version = "^2.0.35"}
 langchain-postgres = "^0.0.12"
+asyncpg = "^0.29.0"
 
 
 [build-system]
