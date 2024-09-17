@@ -38,7 +38,9 @@ row_output_parser = PydanticOutputParser(pydantic_object=RowQAOutput)
 column_output_parser = PydanticOutputParser(pydantic_object=ColumnQAOutput)
 
 chunk_template = """
-Based exclusively on the following information, generate ALL reasonable questions that a user might ask related to it, along with an answer that should be around 2-3 sentences long. Bear in mind that the user may not have read the information directly, so your task is to preempt their questions which can be answered by the information available. Because of this, you MUST refer to years in absolute terms - if the information you have been given references a specific time period, ALWAYS state in both the question and the answer the year/s under consideration. The same is true about topics - DO NOT create questions like "What is the subject matter of the information given?", because the user would not ask that without having the information in front of them.
+Based exclusively on the following information, generate ALL reasonable questions that a user might ask related to it, along with an answer that should be around 2-5 sentences long. A response that is only one sentence long is WHOLLLY INSUFFICIENT.
+
+Bear in mind that the user may not have read the information directly, so your task is to preempt their questions which can be answered by the information available. Because of this, you MUST refer to years in absolute terms - if the information you have been given references a specific time period, ALWAYS state in both the question and the answer the year/s under consideration. The same is true about topics - DO NOT create questions like "What is the subject matter of the information given?" or "In the given year...", because the user WOULD NOT ask that without having the information in front of them.
 
 In addition, you should provide 3-4 variations of each main question.
 
@@ -46,12 +48,14 @@ Information: {info}
 
 {format_instructions}
 
-Remember to only use the information provided when choosing the questions and answers. Every question should be answerable from the information provided, and be clearly grounded at a specific time.
+Remember to only use the information provided when choosing the questions and answers. Every question ABSOLUTELY MUST be answerable from the information provided, and be clearly grounded at a specific time.
 
 IMPORTANT: In your response, include ONLY the JSON data that matches the required format. Do NOT include the schema definition or any other explanatory text.
 """
 row_template = """
-Based on the following information about a specific time frame, generate ALL reasonable questions (roughly 20) that a user might ask, along with clear, accurate answers based solely on the information provided. Focus on events and details specific to the given time frame, including how events in different categories interact with each other. Because the user may not have read the information themself, you must mention the time frame in both the question and the answer. DO NOT create questions like "What is the subject matter of the information given?", because the user would not ask that without having the information in front of them.
+Based on the following information about a specific time frame, generate ALL reasonable questions (roughly 20) that a user might ask, along with clear, accurate answers based solely on the information provided. The answer should be around 2-5 sentences long. A response that is only one sentence is WHOLLLLY INSUFFICIENT.
+
+Focus on events and details specific to the given time frame, including how events in different categories interact with each other. Because the user may not have read the information themself, you must mention the time frame in both the question and the answer. DO NOT create questions like "What is the subject matter of the information given?", because the user WOULD NOT ask that without having the information in front of them.
 
 In addition, you should provide 3-4 variations of each main question.
 
@@ -63,13 +67,15 @@ Time frame: {timeframe}
 
 {format_instructions}
 
-Remember to only use the information provided when choosing the questions and answers. Every question should be answerable from the information provided and be clearly grounded at a specific time.
+Remember to only use the information provided when choosing the questions and answers. Every question ABSOLUTELY MUST be answerable from the information provided and be clearly grounded at a specific time.
 
 IMPORTANT: In your response, include ONLY the JSON data that matches the required format. Do NOT include the schema definition or any other explanatory text.
 """
 
 column_template = """
-Based on the following information about a specific topic over time, generate ALL reasonable questions (roughly 20) a user might ask, along with clear, accurate answers based solely on the information provided. Ensure you highlight the progression or changes over time, with the details in your answer given chronologically and explicitly mentioning the time frame of each event. Because the user may not have read the information themselves, you must mention the topic in both the question and the answer. DO NOT create questions like "What is the subject matter of the information given?", because the user would not ask that without having the information in front of them.
+Based on the following information about a specific topic over time, generate ALL reasonable questions (roughly 20) a user might ask, along with clear, accurate answers based solely on the information provided. The answer should be around 2-5 sentences long. A response that is only one sentence is WHOLLLLY INSUFFICIENT.
+
+Ensure you highlight the progression or changes over time, with the details in your answer given chronologically and explicitly mentioning the time frame of each event. Because the user may not have read the information themselves, you must mention the topic in both the question and the answer. DO NOT create questions like "What is the subject matter of the information given?", or "What is the topic about?" because the user WOULD NOT ask that without having the information in front of them.
 
 In addition, you should provide 3-4 variations of each main question.
 
@@ -291,6 +297,6 @@ if __name__ == "__main__":
     # Load and process CSV
     csv_docs = process_csv_dir("./content/tables")
 
-    qa_docs, failed_outputs = process_for_qa(llm, csv_docs, checkpoint_frequency=3)
+    qa_docs, failed_outputs = process_for_qa(llm, csv_docs, checkpoint_frequency=100)
     with open("qa_output.pkl", "wb") as f:
         pickle.dump((qa_docs, failed_outputs), f)
