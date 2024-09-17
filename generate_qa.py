@@ -2,7 +2,7 @@ from langchain.prompts import ChatPromptTemplate
 from langchain.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
 from typing import List
-from pydantic import ValidationError
+from langchain_core.exceptions import OutputParserException
 import json
 import os
 from langchain.schema import Document
@@ -102,7 +102,8 @@ def generate_chunk_qa(llm, info):
     output = llm.invoke(messages)
     try:
         return chunk_output_parser.parse(output.content), None
-    except ValidationError as e:
+    except OutputParserException as e:
+        print("Error parsing output:", e)
         return None, (str(e), output.content)
     
 def generate_row_qa(llm, info, timeframe):
@@ -112,7 +113,8 @@ def generate_row_qa(llm, info, timeframe):
     output = llm.invoke(messages)
     try:
         return row_output_parser.parse(output.content), None
-    except ValidationError as e:
+    except OutputParserException as e:
+        print("Error parsing output:", e)
         return None, (str(e), output.content)
 
 def generate_column_qa(llm, info, topic):
@@ -122,7 +124,8 @@ def generate_column_qa(llm, info, topic):
     output = llm.invoke(messages)
     try:
         return column_output_parser.parse(output.content), None
-    except ValidationError as e:
+    except OutputParserException as e:
+        print("Error parsing output:", e)
         return None, (str(e), output.content)
 
 
@@ -185,8 +188,6 @@ def process_for_qa(
     for year, docs in timeframe_docs.items():
         combined_info = "\n\n-----\n\n".join([doc.page_content for doc in docs])
         qa_output, error = generate_row_qa(llm, combined_info, year)
-        ## debug line
-        print(f"Processed year: {year}, QA Output: {qa_output}, Error: {error}")
         
         if qa_output is None:
             assert error is not None
@@ -213,7 +214,6 @@ def process_for_qa(
     for topic, docs in topic_docs.items():
         combined_info = "\n".join([f"{doc.metadata['date']}: {doc.page_content}" for doc in docs])
         qa_output, error = generate_column_qa(llm, combined_info, topic)
-        print(f"Processed topic: {topic}, QA Output: {qa_output}, Error: {error}")
         
         if qa_output is None:
             assert error is not None
@@ -239,7 +239,6 @@ def process_for_qa(
     # Process each cell chunk individually
     for i, doc in enumerate(documents[start_index:], start=start_index):
         qa_output, error = generate_chunk_qa(llm, doc.page_content)
-        print(f"Processed chunk: {doc.id}, QA Output: {qa_output}, Error: {error}")
 
         if qa_output is None:
             assert error is not None
@@ -284,18 +283,21 @@ if __name__ == "__main__":
     import json
     import dotenv
 
-    from langchain_openai import ChatOpenAI
+    from langchain_anthropic import ChatAnthropic
 
-    from load_data import process_csv_dir
+    from load_data import process_csv
     from generate_qa import process_for_qa
 
     dotenv.load_dotenv()
 
     # Initialize LLM
-    llm = ChatOpenAI(model="gpt-4o-2024-08-06", temperature=0.7)
+    llm = ChatAnthropic(
+        model="claude-3-5-sonnet-20240620",
+        max_tokens_to_sample=8192,
+    )
 
     # Load and process CSV
-    csv_docs = process_csv_dir("./content/tables")
+    csv_docs = process_csv("./content/tables/airtable_v2.csv")
 
     qa_docs, failed_outputs = process_for_qa(llm, csv_docs, checkpoint_frequency=100)
     with open("qa_output.pkl", "wb") as f:
