@@ -23,83 +23,58 @@ class QAOutput(BaseModel):
     qa_pairs: List[QAPair] = Field(description="List of QA pairs")
 
 
-class RowQAPair(BaseModel):
-    question: str = Field(description="The main question about a specific timeframe")
-    answer: str = Field(description="The answer to the question")
-    variations: List[str] = Field(description="Variations of the main question")
-
-
-class ColumnQAPair(BaseModel):
-    question: str = Field(description="The main question about changes over time")
-    answer: str = Field(description="The answer to the question")
-    variations: List[str] = Field(description="Variations of the main question")
-
-
-class RowQAOutput(BaseModel):
-    qa_pairs: List[RowQAPair] = Field(description="List of row-wise QA pairs")
-
-
-class ColumnQAOutput(BaseModel):
-    qa_pairs: List[ColumnQAPair] = Field(description="List of column-wise QA pairs")
-
-
 chunk_output_parser = PydanticOutputParser(pydantic_object=QAOutput)
-row_output_parser = PydanticOutputParser(pydantic_object=RowQAOutput)
-column_output_parser = PydanticOutputParser(pydantic_object=ColumnQAOutput)
+row_output_parser = PydanticOutputParser(pydantic_object=QAOutput)
+column_output_parser = PydanticOutputParser(pydantic_object=QAOutput)
 
-chunk_template = """
-Based exclusively on the following information, generate ALL reasonable questions that a user might ask related to it, along with an answer that should be around 2-5 sentences long. A response that is only one sentence long is WHOLLLY INSUFFICIENT.
+prompt_components = {
+    "base": {
+        "intro": "Based exclusively on the following information, generate ALL reasonable questions that a user might ask related to it, along with an answer that should be around 2-5 sentences long. A response that is only one sentence long is WHOLLLY INSUFFICIENT.",
+        "context": "Bear in mind that the user may not have read the information directly, so your task is to preempt their questions which can be answered by the information available.",
+        "time_reference": "ALWAYS state in both the question and the answer the year/s under consideration.",
+        "topic_reference": 'DO NOT create questions like "What is the subject matter of the information given?" or "In the given year...", because the user WOULD NOT ask that without having the information in front of them.',
+        "variations": "In addition, you should provide 3-4 variations of each main question.",
+        "info_placeholder": "Information: {info}",
+        "format_instructions": "{format_instructions}",
+        "reminder": "Remember to only use the information provided when choosing the questions and answers. Every question ABSOLUTELY MUST be answerable from the information provided, and be clearly grounded at a specific time.",
+        "output_instruction": "IMPORTANT: In your response, include ONLY the JSON data that matches the required format. Do NOT include the schema definition or any other explanatory text.",
+    },
+    "row": {
+        "focus": "Focus on events and details specific to the given time frame, including how events in different categories interact with each other.",
+        "time_frame": "Time frame: {timeframe}",
+    },
+    "column": {
+        "focus": "Ensure you highlight the progression or changes over time, with the details in your answer given chronologically and explicitly mentioning the time frame of each event.",
+        "topic": "Topic: {topic}",
+    },
+}
 
-Bear in mind that the user may not have read the information directly, so your task is to preempt their questions which can be answered by the information available. Because of this, you MUST refer to years in absolute terms - if the information you have been given references a specific time period, ALWAYS state in both the question and the answer the year/s under consideration. The same is true about topics - DO NOT create questions like "What is the subject matter of the information given?" or "In the given year...", because the user WOULD NOT ask that without having the information in front of them.
 
-In addition, you should provide 3-4 variations of each main question.
+def generate_prompt_template(prompt_type: str) -> str:
+    base = prompt_components["base"]
+    specific = prompt_components.get(prompt_type, {})
 
-Information: {info}
+    template = f"{base['intro']}\n\n{base['context']}\n{base['time_reference']}\n{base['topic_reference']}\n\n{base['variations']}\n\n"
 
-{format_instructions}
+    if specific:
+        template += f"{specific.get('focus', '')}\n\n"
 
-Remember to only use the information provided when choosing the questions and answers. Every question ABSOLUTELY MUST be answerable from the information provided, and be clearly grounded at a specific time.
+    template += f"{base['info_placeholder']}\n\n"
 
-IMPORTANT: In your response, include ONLY the JSON data that matches the required format. Do NOT include the schema definition or any other explanatory text.
-"""
-row_template = """
-Based on the following information about a specific time frame, generate ALL reasonable questions (roughly 20) that a user might ask, along with clear, accurate answers based solely on the information provided. The answer should be around 2-5 sentences long. A response that is only one sentence is WHOLLLLY INSUFFICIENT.
+    if specific:
+        template += f"{specific.get('time_frame', '')}\n{specific.get('topic', '')}\n\n"
 
-Focus on events and details specific to the given time frame, including how events in different categories interact with each other. Because the user may not have read the information themself, you must mention the time frame in both the question and the answer. DO NOT create questions like "What is the subject matter of the information given?", because the user WOULD NOT ask that without having the information in front of them.
+    template += f"{base['format_instructions']}\n\n{base['reminder']}\n\n{base['output_instruction']}"
 
-In addition, you should provide 3-4 variations of each main question.
+    return template
 
-<information>
-{info}
-</information>
 
-Time frame: {timeframe}
+# Generate prompt templates
+chunk_template = generate_prompt_template("base")
+row_template = generate_prompt_template("row")
+column_template = generate_prompt_template("column")
 
-{format_instructions}
-
-Remember to only use the information provided when choosing the questions and answers. Every question ABSOLUTELY MUST be answerable from the information provided and be clearly grounded at a specific time.
-
-IMPORTANT: In your response, include ONLY the JSON data that matches the required format. Do NOT include the schema definition or any other explanatory text.
-"""
-
-column_template = """
-Based on the following information about a specific topic over time, generate ALL reasonable questions (roughly 20) a user might ask, along with clear, accurate answers based solely on the information provided. The answer should be around 2-5 sentences long. A response that is only one sentence is WHOLLLLY INSUFFICIENT.
-
-Ensure you highlight the progression or changes over time, with the details in your answer given chronologically and explicitly mentioning the time frame of each event. Because the user may not have read the information themselves, you must mention the topic in both the question and the answer. DO NOT create questions like "What is the subject matter of the information given?", or "What is the topic about?" because the user WOULD NOT ask that without having the information in front of them.
-
-In addition, you should provide 3-4 variations of each main question.
-
-Information: {info}
-
-Topic: {topic}
-
-{format_instructions}
-
-Remember to only use the information provided and focus on the changes and progression over time.
-
-IMPORTANT: In your response, include ONLY the JSON data that matches the required format. Do NOT include the schema definition or any other explanatory text.
-"""
-
+# Create prompts
 chunk_prompt = ChatPromptTemplate.from_template(chunk_template)
 row_prompt = ChatPromptTemplate.from_template(row_template)
 column_prompt = ChatPromptTemplate.from_template(column_template)
