@@ -7,7 +7,7 @@ import uuid
 import os
 
 
-def process_csv(file_path):
+def process_csv_file(file_path):
     df = pd.read_csv(file_path)
     file_name = os.path.basename(file_path)
     documents = []
@@ -58,6 +58,15 @@ def process_csv_dir(dir_path):
                 documents = process_csv(file_path)
                 all_documents.extend(documents)
     return all_documents
+
+
+def process_csv(file_or_dir):
+    if os.path.isfile(file_or_dir):
+        return process_csv_file(file_or_dir)
+    elif os.path.isdir(file_or_dir):
+        return process_csv_dir(file_or_dir)
+    else:
+        raise ValueError("The path provided is neither a file nor a directory.")
 
 
 def process_csv_dir_vanilla(dir_path):

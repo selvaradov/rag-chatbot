@@ -40,26 +40,25 @@ llm = ChatAnthropic(
 )
 
 # Load and process raw documents
-process_raw_docs = True
-include_unstructured = False
-csv_docs = None
+CSV_PATH = "./content/tables/airtable_v2.csv"  # can be a directory too
+UNSTRUCTURED_PATH = None  # can be a file or directory with .txt or .md files
+LOAD_QA = False
+QA_PATH = "./qa_output.pkl"
 
-csv_docs = process_csv("./content/tables/airtable_v2.csv")
-if include_unstructured:
-    unstructured_docs = process_unstructured("./content/unstructured")
+csv_docs = process_csv(CSV_PATH)
+
+if UNSTRUCTURED_PATH:
+    unstructured_docs = process_unstructured(UNSTRUCTURED_PATH)
     all_input_docs = csv_docs + unstructured_docs
 else:
     all_input_docs = csv_docs
 
-# Generate QA documents
-load_qa = False
-
-qa_docs = None
-if load_qa:
-    with open("qa_output.pkl", "rb") as f:
+qa_docs = []
+if LOAD_QA:
+    with open(QA_PATH, "rb") as f:
         qa_docs, failed_outputs = pickle.load(f)
 
-all_docs = qa_docs + all_input_docs if qa_docs else all_input_docs
+all_docs = qa_docs + all_input_docs
 
 # Create the vector store
 embeddings = OpenAIEmbeddings(

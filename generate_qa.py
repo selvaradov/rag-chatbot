@@ -272,20 +272,26 @@ if __name__ == "__main__":
 
     dotenv.load_dotenv()
 
+    CSV_PATH = "./content/tables/airtable_v2.csv"  # can be a directory too
+    PICKLE_FILE = "qa_output.pkl"
+    CHECKPOINT_FILE = "qa_checkpoint.json"
+
     llm = ChatAnthropic(
         model="claude-3-5-sonnet-20240620",
         max_tokens_to_sample=8192,
     )
 
-    csv_docs = process_csv("./content/tables/airtable_v2.csv")
+    csv_docs = process_csv(CSV_PATH)
 
     # NOTE if there are 429 rate limit errors, you can adjust the max_concurrent parameter
     # to a lower value. On the Tier 2 plan you can make 1,000 requests per minute, but Tier 1
     # is only 50, so it's worth just paying the $40 if you haven't already.
     # https://docs.anthropic.com/en/api/rate-limits
     qa_docs, failed_outputs = asyncio.run(
-        process_for_qa(llm, csv_docs, max_concurrent=50)
+        process_for_qa(
+            llm, csv_docs, checkpoint_file=CHECKPOINT_FILE, max_concurrent=50
+        )
     )
 
-    with open("qa_output.pkl", "wb") as f:
+    with open(PICKLE_FILE, "wb") as f:
         pickle.dump((qa_docs, failed_outputs), f)
