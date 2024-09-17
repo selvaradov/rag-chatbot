@@ -14,7 +14,7 @@ def process_csv(file_path):
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 
     for i, row in df.iterrows():
-        date = row["Date"]
+        timeframe = row["Date"]
         for column in df.columns[1:]:  # Skip the Date column
             content = row[column]
             if pd.isna(content) or content == "":
@@ -31,18 +31,18 @@ def process_csv(file_path):
                     "source": file_path,
                     "table": file_name.replace(".csv", ""),
                     "topic": column,
-                    "date": date,
+                    "timeframe": timeframe,
                     "row": i,
                     "row_data": json.dumps(
                         row.to_dict()
                     ),  # Store entire row for context
-                    "id": f"{file_name}_{column}_{date}_{j}",  # putting it into metadata too because seems to not be working well as id property on its own
+                    "id": f"{file_name}_{column}_{timeframe}_{j}",  # putting it into metadata too because seems to not be working well as id property on its own
                 }
-                enriched_chunk = f"{{DATE: {date} TOPIC: {column}}}\n\n {chunk}"
+                enriched_chunk = f"<meta>\n<timeframe>\n{timeframe}\n</timeframe>\n<topic>\n{column}\n</topic>\n</meta>\n{chunk}"
                 doc = Document(
                     page_content=enriched_chunk,
                     metadata=metadata,
-                    id=f"{file_name}_{column}_{date}_{j}",
+                    id=f"{file_name}_{column}_{timeframe}_{j}",
                 )
                 documents.append(doc)
 
