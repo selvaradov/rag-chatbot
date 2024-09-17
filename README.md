@@ -18,3 +18,11 @@
     - `mkdir -p content/tables`
     - `exit`
   - `heroku ps:copy content/tables/* /app/content/tables`
+
+### Database (not actually using the cloud one)
+- To reset do `heroku pg:reset DATABASE_URL`
+- After that, make sure to run
+```
+heroku pg:psql
+CREATE EXTENSION IF NOT EXISTS vector;
+```
