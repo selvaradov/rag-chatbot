@@ -15,10 +15,10 @@ from langchain_core.prompts import (
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.chat_message_histories import SQLChatMessageHistory
 
-from quart import Quart, request, Response, send_from_directory
+from quart import Quart, request, Response
 from quart_cors import cors
 
-from load_data import process_csv_dir, process_unstructured
+from load_data import process_unstructured, process_csv
 from rag_tool import (
     create_retriever,
     get_metadata_options,
@@ -40,7 +40,7 @@ process_raw_docs = True
 include_unstructured = False
 csv_docs = None
 
-csv_docs = process_csv_dir("./content/tables")
+csv_docs = process_csv("./content/tables/airtable_v2.csv")     
 if include_unstructured:
     unstructured_docs = process_unstructured("./content/unstructured")
     all_input_docs = csv_docs + unstructured_docs
@@ -59,7 +59,6 @@ all_docs = qa_docs + all_input_docs if qa_docs else all_input_docs
 
 # Create the vector store
 embeddings = OpenAIEmbeddings()
-print("got to vectorstore part")
 vectorstore = save_or_load_vectorstore(all_docs, embeddings)
 
 # Create retriever pipeline
@@ -154,10 +153,6 @@ async def chat():
     return Response(generate(), mimetype="application/x-ndjson")
 
 
-if os.environ.get("LOCAL_STREAMLIT") == "true":
-    @app.route('/')
-    async def serve_streamlit():
-        return await send_from_directory('', 'streamlit_frontend.py')
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
