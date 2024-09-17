@@ -4,7 +4,8 @@ from datetime import datetime
 import dotenv
 import os
 
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings
+from langchain_anthropic import ChatAnthropic
 from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain.tools.retriever import create_retriever_tool
 from langchain_core.prompts import (
@@ -33,7 +34,10 @@ app = Quart(__name__)
 app = cors(app)
 
 # Initialize LLM
-llm = ChatOpenAI(model="gpt-4o-2024-08-06", temperature=0.7)
+llm = ChatAnthropic(
+        model="claude-3-5-sonnet-20240620",
+        max_tokens_to_sample=8192,
+    )
 
 # Load and process raw documents
 process_raw_docs = True
@@ -58,7 +62,9 @@ if load_qa:
 all_docs = qa_docs + all_input_docs if qa_docs else all_input_docs
 
 # Create the vector store
-embeddings = OpenAIEmbeddings()
+embeddings = OpenAIEmbeddings(
+    model="text-embedding-3-large",
+)
 vectorstore = save_or_load_vectorstore(all_docs, embeddings)
 
 # Create retriever pipeline
@@ -91,9 +97,12 @@ tools = [retriever_tool]
 # Create the agent prompt
 date = str(datetime.now().date())
 
+# NOTE need to update the system prompt to reflect the actual scenario end date when completed
 system_prompt = f"""You are an AI assistant helping answer users' queries about a speculative scenario describing future developments in AI capabilities, safety, and geopolitics. Your primary goal is to provide accurate and helpful information based on the context provided. If a question is not related to AI, politely refuse to answer it. If the question is about the scenario, make use of the tools available to search for relevant information and then provide an answer. DO NOT guess about what documents exist or refer to any documents without using the search tool. Otherwise, for general queries about AI or questions where no relevant information comes back from the search tool, make this clear to the user, then provide an answer based on background knowledge (and suggest them alternatives to ask about next).  If you don't know the answer, just say that you don't know - DO NOT try to make up an answer.
 
-If the user mentions relative time references (e.g. 'next year'), convert these into absolute dates/ranges before using the search tools. The date today is {date}. When talking about events in the scenario, ALWAYS include the year (and month) in which they happen. If a question asks about changes over time, be sure to present the information in a sensible, chronological order. Expand technical acronyms on first use and provide definitions as appropriate.
+If the user mentions relative time references (e.g. 'next year'), convert these into absolute dates/ranges before using the search tools. The date today is {date}. The scenario runs up to April 2027.
+
+When talking about events in the scenario, ALWAYS include the year (and month) in which they happen. If a question asks about changes over time, be sure to present the information in a sensible, chronological order. Expand technical acronyms on first use and provide definitions as appropriate.
 
 When answering questions, prioritise information from pre-written Q&A pairs when they are relevant, but supplement with additional context as needed. The documents you retrieve will come with a `<meta></meta>` section that contains the source and id of the document. After every claim that uses some information from the retrieved documents, include a citation in the format `<<[id_1, id_2, ...]>>` for each document which was used to produce that claim. Even if it is only a single item, still provide it as a list. These claims should be given citations as precisely as possible, including at the sub-sentence level. It is insufficient to merely provide a list of sources after each paragraph, unless all the claims in that paragraph were drawn from a single source. 
 

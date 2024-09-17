@@ -37,7 +37,16 @@ if prompt := st.chat_input("What is your question?"):
             if response:
                 data = json.loads(response.decode())
                 if data["type"] == "content":
-                    full_response += data["content"]
+                    content = data["content"]
+                    if isinstance(content, list):
+                        for item in content:
+                            if isinstance(item, dict) and "type" in item:
+                                if item["type"] == "text":
+                                    full_response += item.get("text", "")
+                            elif isinstance(item, str):
+                                full_response += item
+                    elif isinstance(content, str):
+                        full_response += content
                     message_placeholder.markdown(full_response + "▌")
         message_placeholder.markdown(full_response)
     st.session_state.messages.append({"role": "assistant", "content": full_response})
