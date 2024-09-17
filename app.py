@@ -13,8 +13,8 @@ from langchain_core.prompts import (
     MessagesPlaceholder,
     PromptTemplate,
 )
-from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.chat_message_histories import SQLChatMessageHistory
+from langchain.memory import ConversationBufferMemory
 
 from quart import Quart, request, Response
 from quart_cors import cors
@@ -35,16 +35,16 @@ app = cors(app)
 
 # Initialize LLM
 llm = ChatAnthropic(
-        model="claude-3-5-sonnet-20240620",
-        max_tokens_to_sample=8192,
-    )
+    model="claude-3-5-sonnet-20240620",
+    max_tokens_to_sample=8192,
+)
 
 # Load and process raw documents
 process_raw_docs = True
 include_unstructured = False
 csv_docs = None
 
-csv_docs = process_csv("./content/tables/airtable_v2.csv")     
+csv_docs = process_csv("./content/tables/airtable_v2.csv")
 if include_unstructured:
     unstructured_docs = process_unstructured("./content/unstructured")
     all_input_docs = csv_docs + unstructured_docs
@@ -83,7 +83,7 @@ use_compression = False
 retriever = self_query_retriever if not use_compression else pipeline_retriever
 
 doc_prompt = PromptTemplate.from_template(
-    "<context>\n<meta>\nsource: {source}, id: {id}\n</meta>\n{page_content}\n</context>"
+    "<document>\n<id>\n{id}\n</id>\n{page_content}\n</document>"
 )
 
 retriever_tool = create_retriever_tool(
@@ -119,20 +119,19 @@ prompt = ChatPromptTemplate.from_messages(
 )
 
 # Create the agent
-agent = create_tool_calling_agent(llm, tools, prompt)
-agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
-
-# Add message history
-agent_with_history_async = RunnableWithMessageHistory(
-    agent_executor,
-    lambda session_id: SQLChatMessageHistory(
-        session_id=session_id,
-        connection="sqlite+aiosqlite:///chats.db",
-        async_mode=True,
-    ),
-    input_messages_key="input",
-    history_messages_key="history",
+memory_history = SQLChatMessageHistory(
+    session_id="",
+    connection="sqlite:///chats.db",
+    async_mode=False,
 )
+memory = ConversationBufferMemory(
+    chat_memory=memory_history,
+    input_key="input",
+    memory_key="history",
+    return_messages=True,
+)
+agent = create_tool_calling_agent(llm, tools, prompt)
+agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True, memory=memory)
 
 
 @app.route("/chat", methods=["POST"])
@@ -141,13 +140,12 @@ async def chat():
     user_input = data["message"]
     session_id = data["session_id"]
 
-    config = {"configurable": {"session_id": session_id}}
-
     async def generate():
         yield json.dumps({"type": "status", "content": "Agent is thinking..."}) + "\n"
-
-        async for event in agent_with_history_async.astream_events(
-            {"input": user_input}, config, version="v2"
+        print("memory:", agent_executor.memory)
+        agent_executor.memory.chat_memory.session_id = session_id
+        async for event in agent_executor.astream_events(
+            {"input": user_input}, version="v2"
         ):
             kind = event["event"]
             if kind == "on_chat_model_stream" and "self_query_llm" not in event["tags"]:
@@ -160,8 +158,6 @@ async def chat():
     return Response(generate(), mimetype="application/x-ndjson")
 
 
-
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
-
