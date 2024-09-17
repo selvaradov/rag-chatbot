@@ -153,8 +153,6 @@ async def chat():
             if kind == "on_chat_model_stream" and "self_query_llm" not in event["tags"]:
                 if content := event["data"]["chunk"].content:
                     chunk = json.dumps({"type": "content", "content": content}) + "\n"
-                    # print(f"Sending chunk: {repr(chunk)} for content `{repr(content)}`")
-                    # print(content, end="", flush=True
                     yield chunk
 
         yield json.dumps({"type": "status", "content": "DONE"}) + "\n"
