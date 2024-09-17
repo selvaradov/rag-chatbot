@@ -10,14 +10,10 @@
 - The citations provided are references to the main Airtable with the format `airtable.csv_COLUMN_ROW_CHUNK`.
   - Rows start from zero and ignore the notes (and headers)
   - Chunks don't mean anything at the moment
+- There's a problem with using `RunnableWithChatHistory` when using Anthropic models (see [issue](https://github.com/langchain-ai/langchain/issues/26563)), so it's currently implemented in a more manual way.
 
 ## Setting up heroku
 - Do `git push heroku main` then navigate to the URL to check project
-- To get the files in place each time the server restarts:
-  - `heroku run bash`
-    - `mkdir -p content/tables`
-    - `exit`
-  - `heroku ps:copy content/tables/* /app/content/tables`
 
 ### Database (not actually using the cloud one)
 - To reset do `heroku pg:reset DATABASE_URL`
@@ -26,3 +22,4 @@
 heroku pg:psql
 CREATE EXTENSION IF NOT EXISTS vector;
 ```
+- At the moment we're just making a new local Chroma vectorstore every time because I couldn't get the PGVector one to work
