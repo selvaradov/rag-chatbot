@@ -23,6 +23,7 @@ psycopg2-binary = "^2.9.9"
 sqlalchemy = {extras = ["asyncio"], version = "^2.0.35"}
 langchain-postgres = "^0.0.12"
 asyncpg = "^0.29.0"
+langchain-anthropic = "^0.2.0"
 
 
 [build-system]
