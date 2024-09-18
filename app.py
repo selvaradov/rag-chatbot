@@ -31,7 +31,6 @@ CSV_PATH = "./content/tables/airtable_v2.csv"  # can be a directory too
 UNSTRUCTURED_PATH = None  # can be a file or directory with .txt or .md files
 LOAD_QA = True
 QA_PATH = "./qa_output_sonnet_v2.pkl"
-METADATA_OPTIONS_PATH = "./metadata_options.pkl"
 
 app = Quart(__name__)
 app = cors(app)
@@ -48,7 +47,6 @@ vectorstore, metadata_options = asyncio.run(
         unstructured_path=UNSTRUCTURED_PATH,
         load_qa=LOAD_QA,
         qa_path=QA_PATH,
-        metadata_options_path=METADATA_OPTIONS_PATH,
     )
 )
 

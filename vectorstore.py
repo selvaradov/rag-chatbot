@@ -1,5 +1,6 @@
 import pickle
 import os
+import json
 from typing import Union
 
 from langchain_postgres import PGVector
@@ -64,7 +65,6 @@ async def setup_vectorstore(
     unstructured_path: Union[None, str],
     load_qa: bool,
     qa_path: str,
-    metadata_options_path: str,
 ):
     engine = create_async_engine(CONNECTION_STRING)
     async with engine.connect() as connection:
@@ -93,8 +93,23 @@ async def setup_vectorstore(
         all_docs = qa_docs + all_input_docs
         metadata_options = get_metadata_options(all_docs)
 
-        with open(metadata_options_path, "wb") as f:
-            pickle.dump(metadata_options, f)
+        # Save metadata options
+        async with engine.connect() as connection:
+            await connection.execute(
+                text("""
+                CREATE TABLE IF NOT EXISTS metadata_options (
+                    id SERIAL PRIMARY KEY,
+                    options JSONB NOT NULL
+                );
+            """)
+            )
+
+            await connection.execute(
+                text("INSERT INTO metadata_options (options) VALUES (:options)"),
+                {"options": json.dumps(metadata_options)},
+            )
+
+            await connection.commit()
 
         # Create and populate the vector store
         vectorstore = await PGVector.afrom_documents(
@@ -116,6 +131,12 @@ async def setup_vectorstore(
             connection=engine,
             use_jsonb=True,
         )
-        metadata_options = pickle.load(open(metadata_options_path, "rb"))
+
+        # Load metadata options
+        async with engine.connect() as connection:
+            result = await connection.execute(
+                text("SELECT options FROM metadata_options")
+            )
+            metadata_options = result.fetchone()[0]
 
     return vectorstore, metadata_options
