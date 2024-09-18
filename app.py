@@ -29,8 +29,8 @@ dotenv.load_dotenv()
 
 CSV_PATH = "./content/tables/airtable_v2.csv"  # can be a directory too
 UNSTRUCTURED_PATH = None  # can be a file or directory with .txt or .md files
-LOAD_QA = False
-QA_PATH = "./qa_output.pkl"
+LOAD_QA = True
+QA_PATH = "./qa_output_sonnet_v2.pkl"
 METADATA_OPTIONS_PATH = "./metadata_options.pkl"
 
 app = Quart(__name__)
