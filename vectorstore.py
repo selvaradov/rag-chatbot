@@ -1,4 +1,5 @@
 import pickle
+import os
 from typing import Union
 
 from langchain_postgres import PGVector
@@ -12,7 +13,13 @@ import dotenv
 dotenv.load_dotenv()
 
 # Connection string for the local PostgreSQL database - in deployment get from DATABASE_URL
-CONNECTION_STRING = "postgresql+psycopg://langchain:langchain@localhost:6024/langchain"
+if db_url := os.getenv("DATABASE_URL"):
+    CONNECTION_STRING = db_url.replace("postgres://", "postgresql+psycopg://")
+else:
+    CONNECTION_STRING = (
+        "postgresql+psycopg://langchain:langchain@localhost:6024/langchain"
+    )
+
 COLLECTION_NAME = "airtable"
 
 
