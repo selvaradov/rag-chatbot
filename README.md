@@ -5,11 +5,14 @@
 - Run `poetry run python runner.py`
 - Open the URL that Streamlit tells you to, probably `http://localhost:8501`
 
+- Note that there is a separate repo for the actual frontend used in deployment - this is because I couldn't get it to work from a single Heroku instance. So, frontend changes need to be copied over to there (my assumption was that the frontend is unlikely to change apart from when it's completely rebuilt).
+
 ## Notes
 - The citations provided are references to the main Airtable with the format `airtable.csv_COLUMN_ROW_CHUNK`.
   - Rows start from zero and ignore the notes (and headers)
   - Chunks don't mean anything at the moment
 - There's a problem with using `RunnableWithChatHistory` when using Anthropic models (see [issue](https://github.com/langchain-ai/langchain/issues/26563)), so it's currently implemented in a more manual way.
+- If you want to re-generate the QA questions, then just run the `generate_qa.py` script - it's been parallelised so should go pretty quickly. To turn them into a more human-readable format run the `question_review.py` script, and you'll get a nice CSV.
 
 ## Setting up heroku
 - Do `git push heroku main` then navigate to the URL to check project
@@ -25,7 +28,6 @@
 heroku pg:psql
 CREATE EXTENSION IF NOT EXISTS vector;
 ```
-- At the moment we're just making a new local Chroma vectorstore every time because I couldn't get the PGVector one to work
 - Docker working now for the Postgres:
   - To [set up](https://python.langchain.com/docs/integrations/vectorstores/pgvector/): `docker run --name pgvector-container -e POSTGRES_USER=langchain -e POSTGRES_PASSWORD=langchain -e POSTGRES_DB=langchain -p 6024:5432 -d pgvector/pgvector:pg16`
   - To reset: `docker exec -it pgvector-container psql -U langchain -d langchain -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO langchain; GRANT ALL ON SCHEMA public TO public;"`
