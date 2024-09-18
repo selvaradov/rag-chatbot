@@ -109,3 +109,20 @@ def process_unstructured(path):
         doc.metadata["id"] = doc_id
 
     return split_docs
+
+
+# We want to get all the dates etc available to put into info for the self query retriever
+def get_metadata_options(docs):
+    files = set()
+    timeframes = set()
+    topics = set()
+
+    for doc in docs:
+        if file := doc.metadata.get("file"):
+            files.add(file)
+        if timeframe := doc.metadata.get("timeframe"):
+            timeframes.add(timeframe)
+        if topic := doc.metadata.get("topic"):
+            topics.add(topic)
+
+    return dict(files=list(files), timeframes=list(timeframes), topics=list(topics))

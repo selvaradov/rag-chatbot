@@ -1,10 +1,9 @@
-import pickle
 import json
 from datetime import datetime
 import dotenv
 import os
+import asyncio
 
-from langchain_openai import OpenAIEmbeddings
 from langchain_anthropic import ChatAnthropic
 from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain.tools.retriever import create_retriever_tool
@@ -19,16 +18,20 @@ from langchain.memory import ConversationBufferMemory
 from quart import Quart, request, Response
 from quart_cors import cors
 
-from load_data import process_unstructured, process_csv
 from rag_tool import (
     create_retriever,
-    get_metadata_options,
     create_self_query_retriever,
     create_compression_retriever,
 )
-from vectorstore import save_or_load_vectorstore
+from vectorstore import setup_vectorstore
 
 dotenv.load_dotenv()
+
+CSV_PATH = "./content/tables/airtable_v2.csv"  # can be a directory too
+UNSTRUCTURED_PATH = None  # can be a file or directory with .txt or .md files
+LOAD_QA = False
+QA_PATH = "./qa_output.pkl"
+METADATA_OPTIONS_PATH = "./metadata_options.pkl"
 
 app = Quart(__name__)
 app = cors(app)
@@ -39,32 +42,15 @@ llm = ChatAnthropic(
     max_tokens_to_sample=8192,
 )
 
-# Load and process raw documents
-CSV_PATH = "./content/tables/airtable_v2.csv"  # can be a directory too
-UNSTRUCTURED_PATH = None  # can be a file or directory with .txt or .md files
-LOAD_QA = False
-QA_PATH = "./qa_output.pkl"
-
-csv_docs = process_csv(CSV_PATH)
-
-if UNSTRUCTURED_PATH:
-    unstructured_docs = process_unstructured(UNSTRUCTURED_PATH)
-    all_input_docs = csv_docs + unstructured_docs
-else:
-    all_input_docs = csv_docs
-
-qa_docs = []
-if LOAD_QA:
-    with open(QA_PATH, "rb") as f:
-        qa_docs, failed_outputs = pickle.load(f)
-
-all_docs = qa_docs + all_input_docs
-
-# Create the vector store
-embeddings = OpenAIEmbeddings(
-    model="text-embedding-3-large",
+vectorstore, metadata_options = asyncio.run(
+    setup_vectorstore(
+        csv_path=CSV_PATH,
+        unstructured_path=UNSTRUCTURED_PATH,
+        load_qa=LOAD_QA,
+        qa_path=QA_PATH,
+        metadata_options_path=METADATA_OPTIONS_PATH,
+    )
 )
-vectorstore = save_or_load_vectorstore(all_docs, embeddings)
 
 # Create retriever pipeline
 compression_retriever = create_retriever(llm, vectorstore)
@@ -72,7 +58,6 @@ vanilla_retriever = vectorstore.as_retriever(
     search_type="similarity", search_kwargs={"k": 6}
 )
 
-metadata_options = get_metadata_options(all_docs)
 self_query_retriever = create_self_query_retriever(llm, vectorstore, metadata_options)
 pipeline_retriever = create_compression_retriever(llm, self_query_retriever)
 
@@ -127,6 +112,7 @@ memory = ConversationBufferMemory(
     chat_memory=memory_history,
     input_key="input",
     memory_key="history",
+    output_key="output",
     return_messages=True,
 )
 agent = create_tool_calling_agent(llm, tools, prompt)
@@ -141,7 +127,6 @@ async def chat():
 
     async def generate():
         yield json.dumps({"type": "status", "content": "Agent is thinking..."}) + "\n"
-        print("memory:", agent_executor.memory)
         agent_executor.memory.chat_memory.session_id = session_id
         async for event in agent_executor.astream_events(
             {"input": user_input}, version="v2"
