@@ -88,8 +88,7 @@ async def setup_vectorstore(
         qa_docs = []
         if load_qa:
             with open(qa_path, "rb") as f:
-                # Second value are the failed pairs but they're not needed here (and empty anyway)
-                qa_docs, _ = pickle.load(f)
+                qa_docs = pickle.load(f)
 
         all_docs = qa_docs + all_input_docs
         metadata_options = get_metadata_options(all_docs)

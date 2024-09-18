@@ -1,14 +1,17 @@
 import pickle
 import csv
 
-with open("qa_output.pkl", "rb") as f:
-    qa_docs, failed_outputs = pickle.load(f)
+QA_FILENAME = "qa_output_sonnet_v2.pkl"
+CSV_OUTPUT_FILENAME = "qa_output_readable.csv"
+
+with open(QA_FILENAME, "rb") as f:
+    qa_docs = pickle.load(f)
 
 trimmed_docs = []
 for qa_doc in qa_docs:
     trimmed_docs.append(qa_doc.page_content)
 
-with open("qa_output_readable.csv", "w", newline='', encoding='utf-8') as csvfile:
+with open(CSV_OUTPUT_FILENAME, "w", newline="", encoding="utf-8") as csvfile:
     csv_writer = csv.writer(csvfile)
     csv_writer.writerow(["Question", "Variations", "Answer"])
 

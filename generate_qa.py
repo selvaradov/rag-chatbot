@@ -273,7 +273,8 @@ if __name__ == "__main__":
     dotenv.load_dotenv()
 
     CSV_PATH = "./content/tables/airtable_v2.csv"  # can be a directory too
-    PICKLE_FILE = "qa_output.pkl"
+    QA_PICKLE = "qa_output.pkl"
+    FAILURES_PICKLE = "failed_outputs.pkl"
     CHECKPOINT_FILE = "qa_checkpoint.json"
 
     llm = ChatAnthropic(
@@ -293,5 +294,7 @@ if __name__ == "__main__":
         )
     )
 
-    with open(PICKLE_FILE, "wb") as f:
-        pickle.dump((qa_docs, failed_outputs), f)
+    with open(QA_PICKLE, "wb") as f:
+        pickle.dump(qa_docs, f)
+    with open(FAILURES_PICKLE, "wb") as f:
+        pickle.dump(failed_outputs, f)
