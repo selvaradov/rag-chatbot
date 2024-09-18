@@ -22,12 +22,9 @@
 - There will be two tables created: 
   - `langchain_pg_collection` which contains all the different "collections" you've created -- usually you'd only have one, I think. The default name for the collection is just `langchain`
   - `langchain_pg_embedding` which contains all the embeddings for every document across all collections, along with other information (e.g., which collection does it belong to, etc.)
-- To reset do `heroku pg:reset DATABASE_URL`
-- After that, make sure to run
-```
-heroku pg:psql
-CREATE EXTENSION IF NOT EXISTS vector;
-```
+- To reset the Heroku database do `heroku pg:reset DATABASE_URL` (can also do through the online dashboard)
+  - You should do this whenever you want to load in new / different documents, otherwise the app will just default to the existing datastore (even if the input files have changed)
+  - When you are creating new embeddings, the basic dyno we're using won't have sufficient memory. On the dashboard you'll need to switch to "Professional" and then choose at least the Web 2x option. Once the table has been completed (you'll see a confirmation message output if you stream the logs with `heroku logs --tail`) you can switch back to basic.
 - Docker working now for the Postgres:
   - To [set up](https://python.langchain.com/docs/integrations/vectorstores/pgvector/): `docker run --name pgvector-container -e POSTGRES_USER=langchain -e POSTGRES_PASSWORD=langchain -e POSTGRES_DB=langchain -p 6024:5432 -d pgvector/pgvector:pg16`
   - To reset: `docker exec -it pgvector-container psql -U langchain -d langchain -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO langchain; GRANT ALL ON SCHEMA public TO public;"`
