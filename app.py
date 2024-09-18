@@ -90,7 +90,11 @@ When talking about events in the scenario, ALWAYS include the year (and month) i
 
 When answering questions, prioritise information from pre-written Q&A pairs when they are relevant, but supplement with additional context as needed. The documents you retrieve will come with a `<meta></meta>` section that contains the source and id of the document. After every claim that uses some information from the retrieved documents, include a citation in the format `<<[id_1, id_2, ...]>>` for each document which was used to produce that claim. Even if it is only a single item, still provide it as a list. These claims should be given citations as precisely as possible, including at the sub-sentence level. It is insufficient to merely provide a list of sources after each paragraph, unless all the claims in that paragraph were drawn from a single source. 
 
-Always strive to provide clear, concise, accurate responses, and NEVER make up information or provide false citations. If you are unsure about something, it is much better to say so than to provide incorrect information."""
+Always strive to provide clear, concise, accurate responses, and NEVER make up information or provide false citations. If you are unsure about something, it is much better to say so than to provide incorrect information.
+
+After providing your response, generate 3 relevant follow-up questions that the user might want to ask next. Format these questions as a JSON array at the end of your response, like this:
+
+FOLLOW_UP_QUESTIONS: ["Question 1?", "Question 2?", "Question 3?"]"""
 
 
 prompt = ChatPromptTemplate.from_messages(
@@ -126,6 +130,7 @@ async def chat():
     session_id = data["session_id"]
 
     async def generate():
+        # NOTE for some reason this "thinking" line doesn't show up in the frontend
         yield json.dumps({"type": "status", "content": "Agent is thinking..."}) + "\n"
         agent_executor.memory.chat_memory.session_id = session_id
         async for event in agent_executor.astream_events(
@@ -136,7 +141,7 @@ async def chat():
                 if content := event["data"]["chunk"].content:
                     chunk = json.dumps({"type": "content", "content": content}) + "\n"
                     yield chunk
-
+        # TODO remove the follow-up questions from streaming and extract separately
         yield json.dumps({"type": "status", "content": "DONE"}) + "\n"
 
     return Response(generate(), mimetype="application/x-ndjson")
